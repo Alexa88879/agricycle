@@ -2,14 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 
 import '../services/auth_service.dart';
-import '../models/waste_listing_model.dart'; // Import the model
-import 'browse_listings_screen.dart'; // Import the new screen
-// import 'map_view_screen.dart'; // Placeholder for future screen
-// import 'market_trends_screen.dart'; // Placeholder for future screen
-// import 'my_bids_offers_screen.dart'; // Placeholder for future screen
+import '../models/waste_listing_model.dart';
+import 'browse_listings_screen.dart';
+import 'listing_detail_screen.dart'; // For navigation
 
 class CompanyDashboardScreen extends StatefulWidget {
   static const String routeName = '/company-dashboard';
@@ -24,17 +22,18 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
   final AuthService _authService = AuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<List<WasteListing>>? _activeListingsStream;
+  Stream<List<WasteListing>>? _recentActiveListingsStream;
   int _totalActiveListingsCount = 0;
+  // Add more state for other stats if needed, e.g., bids made, acquired items
 
   @override
   void initState() {
     super.initState();
-    _loadCompanyData();
+    _loadCompanyDashboardData();
   }
 
-  void _loadCompanyData() {
-    // Stream for active listings count
+  void _loadCompanyDashboardData() {
+    // Stream for total active listings count
     _firestore
         .collection('wasteListings')
         .where('status', isEqualTo: 'active')
@@ -45,18 +44,27 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           _totalActiveListingsCount = snapshot.docs.length;
         });
       }
+    }, onError: (error) {
+      print("Error listening to active listings count: $error");
     });
 
     // Stream for a limited number of recent active listings for the dashboard preview
-    _activeListingsStream = _firestore
+    _recentActiveListingsStream = _firestore
         .collection('wasteListings')
         .where('status', isEqualTo: 'active')
         .orderBy('createdAt', descending: true)
         .limit(5) // Show a few recent ones on the dashboard
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          print("Fetched ${snapshot.docs.length} recent listings for dashboard.");
+          return snapshot.docs
             .map((doc) => WasteListing.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
-            .toList());
+            .toList();
+        })
+        .handleError((error) {
+           print("Error fetching recent active listings: $error");
+           return <WasteListing>[]; // Return empty list on error
+        });
   }
 
   Future<void> _logout() async {
@@ -76,7 +84,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
   Widget build(BuildContext context) {
     final User? currentUser = _authService.currentUser;
     final String userName =
-        currentUser?.displayName ?? currentUser?.email ?? "Company User";
+        _authService.currentUser?.displayName ?? _authService.currentUser?.email ?? "Company User";
     ThemeData theme = Theme.of(context);
 
     return Scaffold(
@@ -87,11 +95,10 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Re-trigger data loading if necessary, though streams update automatically
               setState(() {
-                // If you had one-time fetches, you'd re-call them here.
-                // For streams, this can just force a rebuild if needed.
-                _loadCompanyData();
+                // Re-initialize streams to force a fresh fetch if needed,
+                // though streams should update automatically.
+                _loadCompanyDashboardData();
               });
             },
             tooltip: 'Refresh Data',
@@ -103,7 +110,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: ListView( // Changed to ListView for better scrolling with dynamic content
         padding: const EdgeInsets.all(16.0),
         children: <Widget>[
           Text(
@@ -113,66 +120,13 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Access tools to find waste listings, analyze market trends, and manage your bids.',
+            'Discover waste listings, track market data, and manage your procurement.',
             style: theme.textTheme.titleMedium?.copyWith(color: theme.hintColor),
           ),
           const SizedBox(height: 24),
           _buildStatsOverview(theme),
           const SizedBox(height: 24),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.1, // Adjusted for potentially more text
-            children: [
-              _buildDashboardCard(
-                context,
-                icon: Icons.search_outlined,
-                title: 'Browse All Listings',
-                onTap: () {
-                  Navigator.pushNamed(context, BrowseListingsScreen.routeName);
-                },
-              ),
-              _buildDashboardCard(
-                context,
-                icon: Icons.map_outlined,
-                title: 'Map View',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Map View (Not Implemented Yet)')),
-                  );
-                  // Example: Navigator.pushNamed(context, MapViewScreen.routeName);
-                },
-              ),
-              _buildDashboardCard(
-                context,
-                icon: Icons.trending_up_outlined,
-                title: 'Market Trends',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Market Trends (Not Implemented Yet)')),
-                  );
-                  // Example: Navigator.pushNamed(context, MarketTrendsScreen.routeName);
-                },
-              ),
-              _buildDashboardCard(
-                context,
-                icon: Icons.gavel_outlined, // Changed from business_center
-                title: 'My Bids/Offers',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('My Bids/Offers (Not Implemented Yet)')),
-                  );
-                  // Example: Navigator.pushNamed(context, MyBidsOffersScreen.routeName);
-                },
-              ),
-            ],
-          ),
+          _buildActionGrid(context, theme),
           const SizedBox(height: 24),
           _buildRecentListingsSection(theme),
         ],
@@ -181,6 +135,10 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
   }
 
   Widget _buildStatsOverview(ThemeData theme) {
+    // Placeholder values for bids and acquired, replace with actual data fetching
+    int bidsMade = 0; 
+    int itemsAcquired = 0;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -195,8 +153,8 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatPill(theme, Icons.list_alt_outlined, "Active Listings", _totalActiveListingsCount.toString(), Colors.blue.shade700),
-                _buildStatPill(theme, Icons.local_shipping_outlined, "Bids Made", "0", Colors.orange.shade700), // Placeholder
-                _buildStatPill(theme, Icons.check_circle_outline, "Acquired", "0", Colors.green.shade700), // Placeholder
+                _buildStatPill(theme, Icons.gavel_outlined, "Bids Made", bidsMade.toString(), Colors.orange.shade700),
+                _buildStatPill(theme, Icons.check_circle_outline, "Items Acquired", itemsAcquired.toString(), Colors.green.shade700),
               ],
             )
           ],
@@ -215,6 +173,60 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
         Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
       ],
     );
+  }
+
+  Widget _buildActionGrid(BuildContext context, ThemeData theme) {
+     return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(), // Important for ListView
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.15,
+            children: [
+              _buildDashboardCard(
+                context,
+                icon: Icons.search_outlined,
+                title: 'Browse All Listings',
+                onTap: () {
+                  Navigator.pushNamed(context, BrowseListingsScreen.routeName);
+                },
+              ),
+              _buildDashboardCard(
+                context,
+                icon: Icons.map_outlined,
+                title: 'Map View',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Map View (Not Implemented Yet)')),
+                  );
+                },
+              ),
+              _buildDashboardCard(
+                context,
+                icon: Icons.trending_up_outlined,
+                title: 'Market Trends',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Market Trends (Not Implemented Yet)')),
+                  );
+                },
+              ),
+              _buildDashboardCard(
+                context,
+                icon: Icons.gavel_outlined,
+                title: 'My Bids/Offers',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('My Bids/Offers (Not Implemented Yet)')),
+                  );
+                },
+              ),
+            ],
+          );
   }
 
   Widget _buildDashboardCard(BuildContext context,
@@ -256,75 +268,74 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
         ),
         const SizedBox(height: 12),
         StreamBuilder<List<WasteListing>>(
-          stream: _activeListingsStream,
+          stream: _recentActiveListingsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()));
             }
             if (snapshot.hasError) {
-              return Text("Error loading listings: ${snapshot.error}", style: TextStyle(color: theme.colorScheme.error));
+              return Text("Error loading recent listings: ${snapshot.error}", style: TextStyle(color: theme.colorScheme.error));
             }
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
                   child: Text("No active waste listings found at the moment.", style: TextStyle(fontSize: 16, color: Colors.grey)),
                 ),
               );
             }
             final listings = snapshot.data!;
-            return ListView.builder(
+            return ListView.builder( // Changed from Column to ListView.builder
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(), // Important for ListView inside ListView
               itemCount: listings.length,
               itemBuilder: (context, index) {
                 final listing = listings[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 1,
+                  elevation: 1.5,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                     leading: listing.mediaUrl != null && listing.mediaType == 'image'
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(4.0),
+                            borderRadius: BorderRadius.circular(6.0),
                             child: Image.network(
                               listing.mediaUrl!,
-                              width: 60,
-                              height: 60,
+                              width: 70, // Slightly larger image
+                              height: 70,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.broken_image, size: 50),
+                                  Container(width: 70, height: 70, color: Colors.grey.shade200, child: const Icon(Icons.broken_image, size: 30, color: Colors.grey)),
                               loadingBuilder: (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
-                                return const SizedBox(width: 50, height: 50, child: Center(child: CircularProgressIndicator(strokeWidth: 2,)));
+                                return SizedBox(width: 70, height: 70, child: Center(child: CircularProgressIndicator(strokeWidth: 2.5, value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null)));
                               },
                             ),
                           )
                         : Container(
-                            width: 60,
-                            height: 60,
+                            width: 70,
+                            height: 70,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(4.0),
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(6.0),
                             ),
-                            child: Icon(listing.mediaType == 'video' ? Icons.videocam_outlined : Icons.image_not_supported_outlined, color: Colors.grey.shade700),
+                            child: Icon(listing.mediaType == 'video' ? Icons.videocam_outlined : Icons.image_not_supported_outlined, color: Colors.grey.shade600, size: 30),
                           ),
-                    title: Text(listing.wasteType ?? listing.cropType ?? 'Unknown Waste Type', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    title: Text(listing.wasteType ?? listing.cropType ?? 'Unknown Waste', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Quantity: ${listing.quantity}"),
-                        Text("Location: ${listing.location}"),
-                        Text("Listed: ${DateFormat.yMMMd().add_jm().format(listing.createdAt.toDate())}", style: theme.textTheme.bodySmall),
+                        const SizedBox(height: 2),
+                        Text("Qty: ${listing.quantity}", style: theme.textTheme.bodyMedium),
+                        Text("Loc: ${listing.location}", style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis),
+                        Text("By: ${listing.farmerName ?? 'Unknown Farmer'}", style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+                        Text("Listed: ${DateFormat.yMMMd().format(listing.createdAt.toDate())}", style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
                       ],
                     ),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16, color: theme.hintColor),
                     onTap: () {
-                      // Navigate to ListingDetailScreen (placeholder for now)
-                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('View details for ${listing.wasteType ?? listing.cropType}')),
-                      );
-                      // Navigator.pushNamed(context, ListingDetailScreen.routeName, arguments: listing.id);
+                      Navigator.pushNamed(context, ListingDetailScreen.routeName, arguments: listing.id);
                     },
                   ),
                 );

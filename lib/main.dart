@@ -10,16 +10,14 @@ import 'screens/farmer_dashboard_screen.dart';
 import 'screens/company_dashboard_screen.dart';
 import 'screens/waste_classification_screen.dart';
 import 'screens/new_waste_listing_screen.dart';
-import 'screens/browse_listings_screen.dart'; // New import
-import 'screens/listing_detail_screen.dart'; // New import
+import 'screens/browse_listings_screen.dart'; 
+import 'screens/listing_detail_screen.dart'; 
 
 // Import google_fonts if you plan to use it for styling
 // import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
-  // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase
   await Firebase.initializeApp();
   runApp(const MyApp());
 }
@@ -33,37 +31,66 @@ class MyApp extends StatelessWidget {
       title: 'AgriLoop App',
       theme: ThemeData(
         primarySwatch: Colors.green,
-        // Example of using Google Fonts:
         // textTheme: GoogleFonts.latoTextTheme(
         //   Theme.of(context).textTheme,
         // ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        useMaterial3: true, // Optional: enable Material 3 design
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, secondary: Colors.teal), // Example color scheme
+        useMaterial3: true, 
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.green.shade700, 
+          secondary: Colors.teal.shade600,
+          brightness: Brightness.light, // Or Brightness.dark for dark theme
+        ),
         cardTheme: CardTheme(
           elevation: 1.5,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.circular(12.0), // Consistent border radius
           ),
+          margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 0), // Default card margin
         ),
          inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(10.0), // Consistent border radius
+            borderSide: BorderSide(color: Colors.grey.shade400),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: BorderSide(color: Colors.grey.shade400),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(10.0),
             borderSide: BorderSide(color: Colors.green.shade700, width: 2.0),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+          filled: true,
+          fillColor: Colors.grey.shade50,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(10.0), // Consistent border radius
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)
           ),
         ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0)
+            )
+          )
+        ),
+        appBarTheme: AppBarTheme(
+          elevation: 0.5,
+          backgroundColor: Colors.white, // Or your desired app bar color
+          foregroundColor: Colors.green.shade800, // Icon and title color
+          titleTextStyle: TextStyle(
+            color: Colors.green.shade900,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          )
+        )
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: AuthGate.routeName,
@@ -86,8 +113,8 @@ class MyApp extends StatelessWidget {
         CompanyDashboardScreen.routeName: (context) => const CompanyDashboardScreen(),
         WasteClassificationScreen.routeName: (context) => const WasteClassificationScreen(),
         NewWasteListingScreen.routeName: (context) => const NewWasteListingScreen(),
-        BrowseListingsScreen.routeName: (context) => const BrowseListingsScreen(), // Added route
-        ListingDetailScreen.routeName: (context) { // Added route
+        BrowseListingsScreen.routeName: (context) => const BrowseListingsScreen(),
+        ListingDetailScreen.routeName: (context) {
           final listingId = ModalRoute.of(context)!.settings.arguments as String;
           return ListingDetailScreen(listingId: listingId);
         },
@@ -95,7 +122,7 @@ class MyApp extends StatelessWidget {
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
           builder: (context) => Scaffold(
-            appBar: AppBar(title: const Text('Error')),
+            appBar: AppBar(title: const Text('Error - Page Not Found')),
             body: Center(
               child: Text('No route defined for ${settings.name}'),
             ),

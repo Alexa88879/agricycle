@@ -1,10 +1,10 @@
 // lib/screens/browse_listings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 
 import '../models/waste_listing_model.dart';
-// import 'listing_detail_screen.dart'; // For future navigation
+import 'listing_detail_screen.dart'; // For navigation
 
 class BrowseListingsScreen extends StatefulWidget {
   static const String routeName = '/browse-listings';
@@ -19,100 +19,101 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   Stream<List<WasteListing>>? _allActiveListingsStream;
 
   // State for filters
-  String _searchTerm = "";
-  String? _selectedCategory; // e.g., 'Rice Straw', 'Sugarcane Bagasse'
-  String? _selectedLocation; // Could be a text field or dropdown of common locations
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _locationFilterController = TextEditingController();
+  String? _selectedCategory;
 
   // Sample categories - in a real app, these might be fetched or predefined more robustly
   final List<String> _wasteCategories = [
     'All Categories', 'Rice Straw', 'Wheat Straw', 'Corn Stover', 
     'Sugarcane Bagasse', 'Cotton Stalks', 'Banana Pseudostem', 
     'Jute Sticks', 'Other Agricultural Residue', 'Mixed Organic',
-    'Paper', 'Plastic', 'Metal', 'Glass' // Added some non-agri for broader example
+    'Paper', 'Plastic', 'Metal', 'Glass'
   ];
-
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = _wasteCategories[0]; // Default to "All Categories"
-    _loadAllActiveListings();
+    _applyFiltersAndLoadListings(); // Initial load
+     _searchController.addListener(() {
+      if (mounted) {
+        _applyFiltersAndLoadListings();
+      }
+    });
+    _locationFilterController.addListener(() {
+      if (mounted) {
+        _applyFiltersAndLoadListings();
+      }
+    });
   }
 
-  void _loadAllActiveListings() {
-    Query query = _firestore.collection('wasteListings').where('status', isEqualTo: 'active').orderBy('createdAt', descending: true);
+  void _applyFiltersAndLoadListings() {
+    Query query = _firestore
+        .collection('wasteListings')
+        .where('status', isEqualTo: 'active')
+        .orderBy('createdAt', descending: true);
 
-    if (_searchTerm.isNotEmpty) {
-      // Basic search: checks wasteType, cropType, and location.
-      // Firestore doesn't support case-insensitive search directly on multiple fields with OR.
-      // For more advanced search, consider a third-party search service (e.g., Algolia) or
-      // structuring your data for search (e.g., an array of keywords).
-      // This is a simplified example. A common approach is to convert search term and fields to lowercase
-      // and store a searchable array of keywords in your documents.
-      // query = query.where('searchKeywords', arrayContains: _searchTerm.toLowerCase()); // Example if you have a searchKeywords field
-    }
+    String searchTerm = _searchController.text.trim().toLowerCase();
+    String locationTerm = _locationFilterController.text.trim().toLowerCase();
+
+    // Note: Firestore's querying capabilities for partial text search are limited.
+    // For robust search, consider a dedicated search service (e.g., Algolia) or
+    // structuring your data with an array of searchable keywords.
+    // The client-side filtering below will work for smaller datasets but is not ideal for large scale.
 
     if (_selectedCategory != null && _selectedCategory != 'All Categories') {
-      // This assumes 'wasteType' or 'cropType' field stores the category.
-      // You might need to query on both if the category could be in either.
-      // For simplicity, let's assume it's primarily in 'wasteType' or 'cropType'.
-       query = query.where('cropType', isEqualTo: _selectedCategory);
-      // Or, if categories can also be in 'wasteType':
-      // query = query.where('wasteType', isEqualTo: _selectedCategory);
-    }
-    
-    if (_selectedLocation != null && _selectedLocation!.isNotEmpty) {
-        // This is a simple exact match. For partial matches or radius search, more complex queries or services are needed.
-        query = query.where('location', isEqualTo: _selectedLocation);
+      // This assumes 'cropType' is the primary field for agricultural categories.
+      // You might need to adjust if 'wasteType' also holds these.
+      query = query.where('cropType', isEqualTo: _selectedCategory);
+      // If you also want to check wasteType for the same category:
+      // query = query.where('wasteType', isEqualTo: _selectedCategory); // This would be an AND, not OR
     }
 
+    // For location, Firestore equality check is simple. Partial match needs client-side or different data structure.
+    // If locationTerm is not empty, we might need to do more client-side filtering if exact match isn't desired.
 
-    _allActiveListingsStream = query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => WasteListing.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
-        .where((listing) {
-          // Client-side filtering for search term if not handled by Firestore query directly
-          // This is less efficient for large datasets but works for basic text matching.
-          if (_searchTerm.isEmpty) return true;
-          final searchTermLower = _searchTerm.toLowerCase();
-          bool matches = (listing.wasteType?.toLowerCase().contains(searchTermLower) ?? false) ||
-                         (listing.cropType?.toLowerCase().contains(searchTermLower) ?? false) ||
-                         (listing.location.toLowerCase().contains(searchTermLower)) ||
-                         (listing.suggestedUse?.toLowerCase().contains(searchTermLower) ?? false);
-          return matches;
-        })
-        .toList());
+    _allActiveListingsStream = query.snapshots().map((snapshot) {
+      var listings = snapshot.docs
+          .map((doc) => WasteListing.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+          .toList();
+
+      // Client-side filtering for search term and location (if not perfectly handled by query)
+      if (searchTerm.isNotEmpty) {
+        listings = listings.where((listing) {
+          return (listing.wasteType?.toLowerCase().contains(searchTerm) ?? false) ||
+                 (listing.cropType?.toLowerCase().contains(searchTerm) ?? false) ||
+                 (listing.specificItems?.toLowerCase().contains(searchTerm) ?? false) ||
+                 (listing.farmerName?.toLowerCase().contains(searchTerm) ?? false);
+        }).toList();
+      }
+      if (locationTerm.isNotEmpty) {
+         listings = listings.where((listing) {
+          return (listing.location.toLowerCase().contains(locationTerm));
+        }).toList();
+      }
+      return listings;
+    }).handleError((error){
+      print("Error in _allActiveListingsStream: $error");
+      return <WasteListing>[];
+    });
     
-    if(mounted) setState(() {}); // To rebuild with the new stream
+    if(mounted) setState(() {});
   }
   
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchTerm = value;
-      _loadAllActiveListings(); // Re-fetch or re-filter
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _locationFilterController.dispose();
+    super.dispose();
   }
-
-  void _onCategoryChanged(String? newValue) {
-    setState(() {
-      _selectedCategory = newValue;
-      _loadAllActiveListings(); // Re-fetch or re-filter
-    });
-  }
-  
-  void _onLocationFilterChanged(String value) {
-    setState(() {
-      _selectedLocation = value.trim();
-      _loadAllActiveListings();
-    });
-  }
-
 
   @override
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Browse Waste Listings'),
+        title: const Text('Browse Active Listings'),
         elevation: 1,
       ),
       body: Column(
@@ -126,9 +127,9 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  print("Error in BrowseListingsScreen stream: ${snapshot.error}");
+                  print("Error in BrowseListingsScreen stream builder: ${snapshot.error}");
                   return Center(
-                      child: Text("Error loading listings: ${snapshot.error}", style: TextStyle(color: theme.colorScheme.error)));
+                      child: Text("Error loading listings. Please try again.", style: TextStyle(color: theme.colorScheme.error)));
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
@@ -162,49 +163,77 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
 
   Widget _buildFilterBar(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 8.0),
       child: Column(
         children: [
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by type, crop, location...',
-              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search by type, crop, farmer...',
+              prefixIcon: const Icon(Icons.search, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 20),
+                      onPressed: () {
+                        _searchController.clear();
+                        // _applyFiltersAndLoadListings(); // Listener will trigger this
+                      },
+                    )
+                  : null,
             ),
-            onChanged: _onSearchChanged,
+            // onChanged: (value) => _applyFiltersAndLoadListings(), // Listener does this
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
+                flex: 2,
                 child: DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Category',
+                    // labelText: 'Category',
+                    hintText: 'Category',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   value: _selectedCategory,
                   isExpanded: true,
                   items: _wasteCategories.map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value, overflow: TextOverflow.ellipsis),
+                      child: Text(value, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
                     );
                   }).toList(),
-                  onChanged: _onCategoryChanged,
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedCategory = newValue;
+                      _applyFiltersAndLoadListings();
+                    });
+                  },
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: TextField( // Simple text field for location filter for now
+                flex: 3,
+                child: TextField(
+                  controller: _locationFilterController,
                   decoration: InputDecoration(
                     hintText: 'Filter by Location',
                     prefixIcon: Icon(Icons.location_on_outlined, size: 20),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Adjusted padding
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                     suffixIcon: _locationFilterController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              _locationFilterController.clear();
+                               // _applyFiltersAndLoadListings(); // Listener will trigger this
+                            },
+                          )
+                        : null,
                   ),
-                  onChanged: _onLocationFilterChanged, // Debounce might be good here in a real app
+                  // onChanged: (value) => _applyFiltersAndLoadListings(), // Listener does this
                 ),
               ),
             ],
@@ -214,20 +243,15 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     );
   }
 
-
   Widget _buildListingCard(BuildContext context, WasteListing listing, ThemeData theme) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-      clipBehavior: Clip.antiAlias, // Ensures the InkWell ripple respects border radius
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Navigate to a detailed listing view
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on ${listing.wasteType ?? listing.cropType}')),
-          );
-          // Navigator.pushNamed(context, ListingDetailScreen.routeName, arguments: listing.id);
+          Navigator.pushNamed(context, ListingDetailScreen.routeName, arguments: listing.id);
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,8 +263,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   listing.mediaUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey.shade300,
-                    child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 50)),
+                    color: Colors.grey.shade200,
+                    child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
                   ),
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
@@ -256,19 +280,18 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Container(
-                  color: Colors.black87,
-                  child: Center(child: Icon(Icons.play_circle_outline, color: Colors.white, size: 60)),
+                  color: Colors.black,
+                  child: const Center(child: Icon(Icons.play_circle_outline, color: Colors.white, size: 50)),
                 ),
               )
-            else // Placeholder if no media or not an image
+            else
               AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Container(
                   color: Colors.grey.shade200,
-                  child: Center(child: Icon(Icons.inventory_2_outlined, color: Colors.grey.shade400, size: 60)),
+                  child: Center(child: Icon(Icons.inventory_2_outlined, color: Colors.grey.shade400, size: 50)),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -276,37 +299,16 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                 children: [
                   Text(
                     listing.wasteType ?? listing.cropType ?? 'Unknown Waste',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.scale_outlined, size: 16, color: theme.hintColor),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text('Quantity: ${listing.quantity}', style: theme.textTheme.bodyMedium)),
-                    ],
-                  ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text('Location: ${listing.location}', style: theme.textTheme.bodyMedium)),
-                    ],
-                  ),
-                   if (listing.farmerName != null && listing.farmerName!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                     Row(
-                      children: [
-                        Icon(Icons.person_outline, size: 16, color: theme.hintColor),
-                        const SizedBox(width: 4),
-                        Expanded(child: Text('Listed by: ${listing.farmerName}', style: theme.textTheme.bodySmall)),
-                      ],
-                    ),
-                   ],
-                  const SizedBox(height: 8),
+                  Text('Quantity: ${listing.quantity}', style: theme.textTheme.bodyMedium),
+                  Text('Location: ${listing.location}', style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis),
+                  if (listing.farmerName != null && listing.farmerName!.isNotEmpty)
+                    Text('By: ${listing.farmerName}', style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -316,9 +318,9 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       ),
                       if (listing.suggestedPrice != null && listing.suggestedPrice!.isNotEmpty)
                         Chip(
-                          label: Text(listing.suggestedPrice!, style: TextStyle(color: theme.colorScheme.onSecondaryContainer, fontSize: 12, fontWeight: FontWeight.bold)),
-                          backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          label: Text(listing.suggestedPrice!, style: TextStyle(color: theme.colorScheme.onSecondaryContainer, fontSize: 11, fontWeight: FontWeight.bold)),
+                          backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.7),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           visualDensity: VisualDensity.compact,
                         )
                     ],
