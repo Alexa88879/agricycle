@@ -7,7 +7,8 @@ import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../models/waste_listing_model.dart';
 import 'browse_listings_screen.dart';
-import 'listing_detail_screen.dart'; // For navigation
+import 'listing_detail_screen.dart'; 
+import 'market_trends_screen.dart'; // Import the MarketTrendsScreen
 
 class CompanyDashboardScreen extends StatefulWidget {
   static const String routeName = '/company-dashboard';
@@ -46,6 +47,9 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
       }
     }, onError: (error) {
       print("Error listening to active listings count: $error");
+      if (mounted) {
+        // Optionally show a subtle error to the user or log it
+      }
     });
 
     // Stream for a limited number of recent active listings for the dashboard preview
@@ -56,13 +60,15 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
         .limit(5) // Show a few recent ones on the dashboard
         .snapshots()
         .map((snapshot) {
-          print("Fetched ${snapshot.docs.length} recent listings for dashboard.");
           return snapshot.docs
             .map((doc) => WasteListing.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
             .toList();
         })
         .handleError((error) {
            print("Error fetching recent active listings: $error");
+           if (mounted) {
+            // Optionally show a subtle error to the user or log it
+           }
            return <WasteListing>[]; // Return empty list on error
         });
   }
@@ -84,7 +90,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
   Widget build(BuildContext context) {
     final User? currentUser = _authService.currentUser;
     final String userName =
-        _authService.currentUser?.displayName ?? _authService.currentUser?.email ?? "Company User";
+        currentUser?.displayName ?? currentUser?.email ?? "Company User";
     ThemeData theme = Theme.of(context);
 
     return Scaffold(
@@ -95,11 +101,11 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              setState(() {
-                // Re-initialize streams to force a fresh fetch if needed,
-                // though streams should update automatically.
-                _loadCompanyDashboardData();
-              });
+              if(mounted) {
+                setState(() {
+                  _loadCompanyDashboardData(); // Re-fetch data
+                });
+              }
             },
             tooltip: 'Refresh Data',
           ),
@@ -110,7 +116,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           ),
         ],
       ),
-      body: ListView( // Changed to ListView for better scrolling with dynamic content
+      body: ListView( 
         padding: const EdgeInsets.all(16.0),
         children: <Widget>[
           Text(
@@ -178,7 +184,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
   Widget _buildActionGrid(BuildContext context, ThemeData theme) {
      return GridView.count(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // Important for ListView
+            physics: const NeverScrollableScrollPhysics(), 
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
@@ -197,6 +203,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
                 icon: Icons.map_outlined,
                 title: 'Map View',
                 onTap: () {
+                  // Placeholder for Map View
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Map View (Not Implemented Yet)')),
@@ -205,13 +212,11 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
               ),
               _buildDashboardCard(
                 context,
-                icon: Icons.trending_up_outlined,
+                icon: Icons.trending_up_outlined, // Changed Icon
                 title: 'Market Trends',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Market Trends (Not Implemented Yet)')),
-                  );
+                  // Navigate to MarketTrendsScreen
+                  Navigator.pushNamed(context, MarketTrendsScreen.routeName);
                 },
               ),
               _buildDashboardCard(
@@ -219,6 +224,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
                 icon: Icons.gavel_outlined,
                 title: 'My Bids/Offers',
                 onTap: () {
+                  // Placeholder for My Bids/Offers
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('My Bids/Offers (Not Implemented Yet)')),
@@ -285,9 +291,9 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
               );
             }
             final listings = snapshot.data!;
-            return ListView.builder( // Changed from Column to ListView.builder
+            return ListView.builder( 
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), // Important for ListView inside ListView
+              physics: const NeverScrollableScrollPhysics(), 
               itemCount: listings.length,
               itemBuilder: (context, index) {
                 final listing = listings[index];
@@ -302,7 +308,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
                             borderRadius: BorderRadius.circular(6.0),
                             child: Image.network(
                               listing.mediaUrl!,
-                              width: 70, // Slightly larger image
+                              width: 70, 
                               height: 70,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
