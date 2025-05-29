@@ -5,7 +5,11 @@ import 'screens/role_selection_screen.dart';
 import 'screens/login_or_signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/farmer_dashboard_screen.dart'; // New Farmer Dashboard
+import 'screens/company_dashboard_screen.dart'; // New Company Dashboard
+import 'screens/waste_classification_screen.dart'; 
+import 'screens/new_waste_listing_screen.dart'; // Added this import
+
 // Import google_fonts if you plan to use it for styling
 // import 'package:google_fonts/google_fonts.dart';
 
@@ -13,7 +17,6 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize Firebase
-  // Note: No need to pass FirebaseOptions.currentPlatform if google-services.json/GoogleService-Info.plist is set up
   await Firebase.initializeApp();
   runApp(const MyApp());
 }
@@ -32,6 +35,7 @@ class MyApp extends StatelessWidget {
         //   Theme.of(context).textTheme,
         // ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true, // Optional: enable Material 3 design
       ),
       debugShowCheckedModeBanner: false,
       // Initial route is AuthGate to check authentication state
@@ -56,8 +60,25 @@ class MyApp extends StatelessWidget {
           final role = ModalRoute.of(context)!.settings.arguments as String;
           return SignUpScreen(role: role);
         },
-        // Route for the main dashboard after login/signup
-        DashboardScreen.routeName: (context) => const DashboardScreen(),
+        // Routes for role-specific dashboards
+        FarmerDashboardScreen.routeName: (context) => const FarmerDashboardScreen(),
+        CompanyDashboardScreen.routeName: (context) => const CompanyDashboardScreen(),
+        // Route for the Waste Classification screen (using Gemini)
+        WasteClassificationScreen.routeName: (context) => const WasteClassificationScreen(),
+        // Route for the New Waste Listing screen
+        NewWasteListingScreen.routeName: (context) => const NewWasteListingScreen(), // Added this route
+        // The old generic DashboardScreen.routeName can be removed if AuthGate handles all dashboard navigation
+      },
+      // Optional: Define onUnknownRoute for handling undefined routes
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(
+              child: Text('No route defined for ${settings.name}'),
+            ),
+          ),
+        );
       },
     );
   }
