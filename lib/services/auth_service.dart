@@ -1,5 +1,9 @@
+// lib/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// It's good practice to import your AppUser model if you have one,
+// but for this service, direct map operations are also fine.
+// import '../models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -24,6 +28,7 @@ class AuthService {
 
       if (user != null) {
         // Store additional user information in Firestore
+        // IMPORTANT: Ensure this Firestore write completes before returning
         await _firestore.collection('users').doc(user.uid).set({
           'uid': user.uid,
           'email': user.email,
@@ -31,16 +36,15 @@ class AuthService {
           'role': role,
           'createdAt': Timestamp.now(),
         });
+        print("User profile created in Firestore for UID: ${user.uid}");
       }
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      // Handle Firebase specific errors (e.g., email-already-in-use)
-      print('FirebaseAuthException during sign up: ${e.message}');
-      throw e; // Re-throw the exception to be caught by the UI
+      print('FirebaseAuthException during sign up: ${e.code} - ${e.message}');
+      throw e;
     } catch (e) {
-      // Handle other errors
       print('Error during sign up: $e');
-      throw e; // Re-throw the exception
+      throw e;
     }
   }
 
@@ -54,13 +58,11 @@ class AuthService {
       );
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      // Handle Firebase specific errors (e.g., user-not-found, wrong-password)
-      print('FirebaseAuthException during sign in: ${e.message}');
-      throw e; // Re-throw the exception
+      print('FirebaseAuthException during sign in: ${e.code} - ${e.message}');
+      throw e;
     } catch (e) {
-      // Handle other errors
       print('Error during sign in: $e');
-      throw e; // Re-throw the exception
+      throw e;
     }
   }
 
@@ -68,9 +70,10 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await _auth.signOut();
+      print("User signed out successfully.");
     } catch (e) {
       print('Error during sign out: $e');
-      throw e; // Re-throw the exception
+      throw e;
     }
   }
 
@@ -82,10 +85,25 @@ class AuthService {
       if (doc.exists) {
         return doc.data() as Map<String, dynamic>?;
       }
+      print("User document not found for UID: $uid");
       return null;
     } catch (e) {
-      print('Error fetching user data: $e');
-      throw e; // Re-throw the exception
+      print('Error fetching user data for UID $uid: $e');
+      // It's often better not to throw here but return null,
+      // allowing AuthGate to handle the "no data" scenario.
+      return null;
+      // throw e; // Original behavior
+    }
+  }
+
+  // Get user role directly (can be useful for quick checks, but getUserData is more comprehensive)
+  Future<String?> getUserRole(String uid) async {
+    try {
+      final userData = await getUserData(uid);
+      return userData?['role'] as String?;
+    } catch (e) {
+      print('Error fetching user role directly for UID $uid: $e');
+      return null;
     }
   }
 }

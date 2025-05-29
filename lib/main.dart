@@ -1,3 +1,4 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/auth_gate.dart';
@@ -5,10 +6,12 @@ import 'screens/role_selection_screen.dart';
 import 'screens/login_or_signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
-import 'screens/farmer_dashboard_screen.dart'; // New Farmer Dashboard
-import 'screens/company_dashboard_screen.dart'; // New Company Dashboard
-import 'screens/waste_classification_screen.dart'; 
-import 'screens/new_waste_listing_screen.dart'; // Added this import
+import 'screens/farmer_dashboard_screen.dart';
+import 'screens/company_dashboard_screen.dart';
+import 'screens/waste_classification_screen.dart';
+import 'screens/new_waste_listing_screen.dart';
+import 'screens/browse_listings_screen.dart'; // New import
+import 'screens/listing_detail_screen.dart'; // New import
 
 // Import google_fonts if you plan to use it for styling
 // import 'package:google_fonts/google_fonts.dart';
@@ -36,40 +39,59 @@ class MyApp extends StatelessWidget {
         // ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true, // Optional: enable Material 3 design
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, secondary: Colors.teal), // Example color scheme
+        cardTheme: CardTheme(
+          elevation: 1.5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+        ),
+         inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.green.shade700, width: 2.0),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+        ),
       ),
       debugShowCheckedModeBanner: false,
-      // Initial route is AuthGate to check authentication state
       initialRoute: AuthGate.routeName,
       routes: {
-        // Route for checking authentication state and redirecting
         AuthGate.routeName: (context) => const AuthGate(),
-        // Route for selecting user role
         RoleSelectionScreen.routeName: (context) => const RoleSelectionScreen(),
-        // Route for deciding between login or signup after role selection
         LoginOrSignupScreen.routeName: (context) {
           final role = ModalRoute.of(context)!.settings.arguments as String;
           return LoginOrSignupScreen(role: role);
         },
-        // Route for the login screen
         LoginScreen.routeName: (context) {
           final role = ModalRoute.of(context)!.settings.arguments as String;
           return LoginScreen(role: role);
         },
-        // Route for the signup screen
         SignUpScreen.routeName: (context) {
           final role = ModalRoute.of(context)!.settings.arguments as String;
           return SignUpScreen(role: role);
         },
-        // Routes for role-specific dashboards
         FarmerDashboardScreen.routeName: (context) => const FarmerDashboardScreen(),
         CompanyDashboardScreen.routeName: (context) => const CompanyDashboardScreen(),
-        // Route for the Waste Classification screen (using Gemini)
         WasteClassificationScreen.routeName: (context) => const WasteClassificationScreen(),
-        // Route for the New Waste Listing screen
-        NewWasteListingScreen.routeName: (context) => const NewWasteListingScreen(), // Added this route
-        // The old generic DashboardScreen.routeName can be removed if AuthGate handles all dashboard navigation
+        NewWasteListingScreen.routeName: (context) => const NewWasteListingScreen(),
+        BrowseListingsScreen.routeName: (context) => const BrowseListingsScreen(), // Added route
+        ListingDetailScreen.routeName: (context) { // Added route
+          final listingId = ModalRoute.of(context)!.settings.arguments as String;
+          return ListingDetailScreen(listingId: listingId);
+        },
       },
-      // Optional: Define onUnknownRoute for handling undefined routes
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
           builder: (context) => Scaffold(

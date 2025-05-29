@@ -1,8 +1,10 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
-import 'dashboard_screen.dart';
+// import 'dashboard_screen.dart'; // No longer navigating directly to a generic dashboard
 import 'signup_screen.dart'; // For "Don't have an account?" link
+import 'auth_gate.dart'; // Import AuthGate
 
 class LoginScreen extends StatefulWidget {
   static const String routeName = '/login';
@@ -39,10 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (userCredential != null && mounted) {
-          // Navigate to Dashboard on successful login
+          // Navigate to AuthGate to handle redirection based on role
           Navigator.pushNamedAndRemoveUntil(
             context,
-            DashboardScreen.routeName,
+            AuthGate.routeName, // MODIFIED: Navigate to AuthGate
             (Route<dynamic> route) => false, // Remove all previous routes
           );
         }
@@ -52,16 +54,18 @@ class _LoginScreenState extends State<LoginScreen> {
             _errorMessage = 'No user found for that email.';
           } else if (e.code == 'wrong-password') {
             _errorMessage = 'Wrong password provided for that user.';
-          } else if (e.code == 'invalid-credential') {
+          } else if (e.code == 'invalid-credential' || e.code == 'INVALID_LOGIN_CREDENTIALS') {
              _errorMessage = 'Invalid credentials. Please check your email and password.';
           }
           else {
             _errorMessage = e.message ?? 'An unknown error occurred.';
+            print('Login FirebaseAuthException: ${e.code} - ${e.message}');
           }
         });
       } catch (e) {
         setState(() {
           _errorMessage = 'An unexpected error occurred. Please try again.';
+           print('Login Generic Exception: $e');
         });
       } finally {
         if (mounted) {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
-import 'dashboard_screen.dart';
+// import 'dashboard_screen.dart'; // No longer navigating directly to DashboardScreen
 import 'login_screen.dart'; // For "Already have an account?" link
+import 'auth_gate.dart'; // Import AuthGate
 
 class SignUpScreen extends StatefulWidget {
   static const String routeName = '/signup';
@@ -51,10 +52,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
 
         if (userCredential != null && mounted) {
-          // Navigate to Dashboard on successful signup
+          // Navigate to AuthGate to handle redirection based on role
           Navigator.pushNamedAndRemoveUntil(
             context,
-            DashboardScreen.routeName,
+            AuthGate.routeName, // MODIFIED: Navigate to AuthGate
             (Route<dynamic> route) => false, // Remove all previous routes
           );
         }
