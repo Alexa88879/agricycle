@@ -38,7 +38,9 @@ class WasteAnalysisDetails {
       caseSensitive: false, multiLine: true, dotAll: true,
     );
     final match = regex.firstMatch(text);
-    return match?.group(1)?.trim();
+    String? result = match?.group(1)?.trim();
+    // Remove any remaining asterisks from the extracted value
+    return result?.replaceAll('**', '');
   }
 
   factory WasteAnalysisDetails.fromRawText(String rawText) {
@@ -299,6 +301,8 @@ class _NewWasteListingScreenState extends State<NewWasteListingScreen> {
         final Map<String, dynamic> resultData = jsonDecode(response.body);
         if (resultData.containsKey('candidates') && (resultData['candidates'] as List).isNotEmpty) {
           String rawText = resultData['candidates'][0]['content']?['parts']?[0]?['text']?.toString()?.trim() ?? "";
+          // Remove asterisks from the raw response
+          rawText = rawText.replaceAll('**', '');
           print("Gemini Raw Text for Listing Description:\n$rawText");
           setState(() {
             _geminiAnalysisDetails = WasteAnalysisDetails.fromRawText(rawText);

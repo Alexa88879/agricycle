@@ -165,7 +165,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     tilePadding: EdgeInsets.zero,
                     initiallyExpanded: false,
                     children: [
-                      SelectableText(listing.geminiRawResponse!, style: theme.textTheme.bodySmall),
+                      SelectableText(
+                        listing.geminiRawResponse?.replaceAll('**', '') ?? '', 
+                        style: theme.textTheme.bodySmall
+                      ),
                     ],
                   )
                 ],
