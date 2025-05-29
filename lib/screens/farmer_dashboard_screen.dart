@@ -1,14 +1,15 @@
+// lib/screens/farmer_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // For date formatting, add to pubspec.yaml if not present
+import 'package:intl/intl.dart'; 
 
 import '../services/auth_service.dart'; 
 import 'new_waste_listing_screen.dart'; 
-// This should be your detailed Gemini analysis screen (ID: flutter_waste_classification_screen_gemini_detailed)
 import 'waste_classification_screen.dart'; 
+import 'browse_listings_screen.dart'; // Import BrowseListingsScreen
 
-// Model for Farmer Stats
+// Model for Farmer Stats (assuming it's defined as in previous context)
 class FarmerStats {
   final double monthlyEarnings;
   final String monthlyEarningsComparison; 
@@ -20,14 +21,15 @@ class FarmerStats {
 
   FarmerStats({
     this.monthlyEarnings = 0.0,
-    this.monthlyEarningsComparison = "+0% from last month", // Placeholder
+    this.monthlyEarningsComparison = "+0% from last month",
     this.totalCo2Saved = 0.0,
-    this.co2YearlyTarget = 5000.0, // Example target in kg
+    this.co2YearlyTarget = 5000.0, 
     this.co2YearlyProgress = 0.0,
     this.activeListingsCount = 0,
     this.recentActiveListings = const [],
   });
 }
+
 
 class FarmerDashboardScreen extends StatefulWidget {
   static const String routeName = '/farmer-dashboard';
@@ -41,7 +43,6 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
   final AuthService _authService = AuthService();
   late Future<FarmerStats> _farmerStatsFuture;
   
-  // This could be fetched from user settings or a global config. Unit: kg
   final double _co2YearlyTarget = 5000.0; 
 
   @override
@@ -63,8 +64,8 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
     }
 
     double currentMonthEarnings = 0.0;
-    double lifetimeCo2Saved = 0.0; // Total CO2 saved by this user ever
-    double currentYearCo2Saved = 0.0; // CO2 saved in the current year for target progress
+    double lifetimeCo2Saved = 0.0;
+    double currentYearCo2Saved = 0.0;
     int activeListings = 0;
     List<Map<String, String>> recentActiveListingsData = [];
 
@@ -76,51 +77,50 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
       final listingsSnapshot = await FirebaseFirestore.instance
           .collection('wasteListings')
           .where('userId', isEqualTo: currentUser.uid)
-          .orderBy('createdAt', descending: true) // Get recent ones first for display
+          .orderBy('createdAt', descending: true) 
           .get();
 
       for (var doc in listingsSnapshot.docs) {
         Map<String, dynamic> data = doc.data();
 
-        // Active Listings
         if (data['status'] == 'active') {
           activeListings++;
           if (recentActiveListingsData.length < 3) {
             recentActiveListingsData.add({
               "name": data['wasteType']?.toString() ?? data['cropType']?.toString() ?? 'Unknown Waste',
-              "status": "Active" // Or fetch a more detailed status if available
+              "status": "Active" 
             });
           }
         }
 
-        // Earnings for the current month
-        // Assumes 'status' == 'sold', 'soldAt' (Timestamp), 'soldPrice' (Number or String to parse)
         if (data['status'] == 'sold' && data['soldAt'] is Timestamp) {
            final soldAtTimestamp = data['soldAt'] as Timestamp;
            if (soldAtTimestamp.toDate().isAfter(startOfMonth.toDate().subtract(const Duration(days:1))) && 
                soldAtTimestamp.toDate().month == now.month &&
                soldAtTimestamp.toDate().year == now.year) {
-             // soldPrice could be a direct number or a string like "₹500"
              final price = _parseNumericValueFromString(data['soldPrice']?.toString() ?? data['suggestedPrice']?.toString());
              currentMonthEarnings += price;
            }
         }
         
-        // CO2 Saved
         double listingCo2Saved = _parseNumericValueFromString(data['co2SavedEstimate']?.toString());
         lifetimeCo2Saved += listingCo2Saved;
 
-        // CO2 Saved for current year (for progress bar)
         if (data['createdAt'] is Timestamp) {
           final createdAtTimestamp = data['createdAt'] as Timestamp;
           if (createdAtTimestamp.toDate().isAfter(startOfYear.toDate().subtract(const Duration(days:1))) &&
               createdAtTimestamp.toDate().year == now.year) {
-             currentYearCo2Saved += listingCo2Saved; // Assuming CO2 saved is per listing creation
+             currentYearCo2Saved += listingCo2Saved;
           }
         }
       }
     } catch (e) {
       print("Error fetching farmer stats: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error loading stats: ${e.toString()}"))
+        );
+      }
     }
     
     double co2Progress = 0.0;
@@ -128,7 +128,6 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
       co2Progress = (currentYearCo2Saved / _co2YearlyTarget).clamp(0.0, 1.0);
     }
     
-    // Placeholder for earnings comparison - requires fetching previous month's data
     String earningsComparison = "+0% from last month"; 
 
     return FarmerStats(
@@ -145,7 +144,6 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
   Future<void> _logout() async {
     try {
       await _authService.signOut();
-      // AuthGate will handle navigation
     } catch (e) {
        if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,9 +167,11 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-               setState(() {
-                _farmerStatsFuture = _fetchFarmerStats();
-              });
+               if(mounted) {
+                 setState(() {
+                  _farmerStatsFuture = _fetchFarmerStats();
+                });
+               }
             },
             tooltip: 'Refresh Stats',
           ),
@@ -184,9 +184,11 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          setState(() {
-            _farmerStatsFuture = _fetchFarmerStats();
-          });
+          if(mounted) {
+            setState(() {
+              _farmerStatsFuture = _fetchFarmerStats();
+            });
+          }
         },
         child: ListView( 
           padding: const EdgeInsets.all(16.0),
@@ -226,7 +228,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.15, // Adjusted for potentially more text
+              childAspectRatio: 1.15, 
               children: [
                 _buildDashboardCard(
                   context,
@@ -234,17 +236,15 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                   title: 'List New Waste',
                    onTap: () {
                     Navigator.pushNamed(context, NewWasteListingScreen.routeName).then((_){
-                      // Refresh stats if a listing might have been added
-                      setState(() { _farmerStatsFuture = _fetchFarmerStats(); });
+                      if(mounted) setState(() { _farmerStatsFuture = _fetchFarmerStats(); });
                     });
                   },
                 ),
-                _buildDashboardCard( // Explicit Waste Categorization Card
+                _buildDashboardCard( 
                   context,
                   icon: Icons.science_outlined, 
                   title: 'Waste Categorization', 
                    onTap: () {
-                    // Navigates to the standalone Gemini analysis screen
                     Navigator.pushNamed(context, WasteClassificationScreen.routeName);
                   },
                 ),
@@ -253,10 +253,18 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                   icon: Icons.list_alt_outlined,
                   title: 'My Listings',
                   onTap: () {
-                    Navigator.pushNamed(context, '/my-listings').then((_) {
-                      // Refresh stats when returning from My Listings
-                      setState(() { _farmerStatsFuture = _fetchFarmerStats(); });
-                    });
+                    final farmerId = _authService.currentUser?.uid;
+                    if (farmerId != null) {
+                      Navigator.pushNamed(
+                        context, 
+                        BrowseListingsScreen.routeName, 
+                        arguments: {'specificUserId': farmerId}
+                      );
+                    } else {
+                       ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not identify user for listings.')),
+                      );
+                    }
                   },
                 ),
                  _buildDashboardCard(
@@ -267,7 +275,6 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                      ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Transaction History (Not Implemented Yet)')),
                     );
-                     // Example: Navigator.pushNamed(context, '/transaction-history');
                   },
                 ),
               ],
@@ -301,7 +308,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
             if (stats.recentActiveListings.isNotEmpty) ...[
               const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.only(left: 24.0), // Indent list under "Active Listings"
+                padding: const EdgeInsets.only(left: 24.0), 
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: stats.recentActiveListings.map((listing) => Padding(
@@ -321,7 +328,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                   )).toList(),
                 ),
               ),
-            ] else if (stats.activeListingsCount > 0) ... [ // If count > 0 but list is empty (e.g., didn't fetch details)
+            ] else if (stats.activeListingsCount > 0) ... [ 
                  Padding(
                    padding: const EdgeInsets.only(top: 4.0, left: 24),
                    child: Text("Details for active listings not shown here.", style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
@@ -354,7 +361,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
             value: progress,
             backgroundColor: theme.dividerColor.withOpacity(0.5),
             valueColor: AlwaysStoppedAnimation<Color>(valueColor),
-            minHeight: 8, // Made progress bar thicker
+            minHeight: 8, 
             borderRadius: BorderRadius.circular(4),
           ),
         ]
@@ -388,7 +395,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
    Widget _buildQuickTipsCard(ThemeData theme, Color cardColor, Color subtleTextColor) {
     return Card(
       elevation: 2,
-      color: cardColor, // Use passed cardColor
+      color: cardColor, 
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

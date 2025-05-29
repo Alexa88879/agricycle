@@ -12,7 +12,7 @@ import 'screens/waste_classification_screen.dart';
 import 'screens/new_waste_listing_screen.dart';
 import 'screens/browse_listings_screen.dart'; 
 import 'screens/listing_detail_screen.dart'; 
-import 'screens/market_trends_screen.dart'; // Import the new screen
+import 'screens/market_trends_screen.dart';
 
 // Import google_fonts if you plan to use it for styling
 // import 'package:google_fonts/google_fonts.dart';
@@ -114,12 +114,20 @@ class MyApp extends StatelessWidget {
         CompanyDashboardScreen.routeName: (context) => const CompanyDashboardScreen(),
         WasteClassificationScreen.routeName: (context) => const WasteClassificationScreen(),
         NewWasteListingScreen.routeName: (context) => const NewWasteListingScreen(),
-        BrowseListingsScreen.routeName: (context) => const BrowseListingsScreen(),
+        
+        BrowseListingsScreen.routeName: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          // Corrected parameter names:
+          return BrowseListingsScreen(
+            specificUserId: args?['specificUserId'] as String?,
+            initialSearchQuery: args?['initialSearchQuery'] as String?,
+          );
+        },
         ListingDetailScreen.routeName: (context) {
           final listingId = ModalRoute.of(context)!.settings.arguments as String;
           return ListingDetailScreen(listingId: listingId);
         },
-        MarketTrendsScreen.routeName: (context) => const MarketTrendsScreen(), // Add new route
+        MarketTrendsScreen.routeName: (context) => const MarketTrendsScreen(), 
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
