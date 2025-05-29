@@ -32,19 +32,19 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
         _errorMessage = null;
       });
-
+  
       try {
         UserCredential? userCredential =
             await _authService.signInWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-
+  
         if (userCredential != null && mounted) {
           // Navigate to AuthGate to handle redirection based on role
           Navigator.pushNamedAndRemoveUntil(
             context,
-            AuthGate.routeName, // MODIFIED: Navigate to AuthGate
+            AuthGate.routeName,
             (Route<dynamic> route) => false, // Remove all previous routes
           );
         }
@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
           } else if (e.code == 'wrong-password') {
             _errorMessage = 'Wrong password provided for that user.';
           } else if (e.code == 'invalid-credential' || e.code == 'INVALID_LOGIN_CREDENTIALS') {
-             _errorMessage = 'Invalid credentials. Please check your email and password.';
+               _errorMessage = 'Invalid credentials. Please check your email and password.';
           }
           else {
             _errorMessage = e.message ?? 'An unknown error occurred.';

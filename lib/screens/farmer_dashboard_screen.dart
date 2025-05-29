@@ -253,10 +253,10 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                   icon: Icons.list_alt_outlined,
                   title: 'My Listings',
                   onTap: () {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('My Listings (Not Implemented Yet)')),
-                    );
-                    // Example: Navigator.pushNamed(context, '/my-listings');
+                    Navigator.pushNamed(context, '/my-listings').then((_) {
+                      // Refresh stats when returning from My Listings
+                      setState(() { _farmerStatsFuture = _fetchFarmerStats(); });
+                    });
                   },
                 ),
                  _buildDashboardCard(

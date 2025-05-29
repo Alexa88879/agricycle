@@ -55,17 +55,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
           // Navigate to AuthGate to handle redirection based on role
           Navigator.pushNamedAndRemoveUntil(
             context,
-            AuthGate.routeName, // MODIFIED: Navigate to AuthGate
+            AuthGate.routeName,
             (Route<dynamic> route) => false, // Remove all previous routes
           );
         }
       } on FirebaseAuthException catch (e) {
         setState(() {
-          _errorMessage = e.message ?? 'An unknown error occurred.';
+          if (e.code == 'email-already-in-use') {
+            _errorMessage = 'This email is already registered. Please login instead.';
+          } else if (e.code == 'weak-password') {
+            _errorMessage = 'The password provided is too weak.';
+          } else {
+            _errorMessage = e.message ?? 'An unknown error occurred.';
+          }
+          print('Signup FirebaseAuthException: ${e.code} - ${e.message}');
         });
       } catch (e) {
         setState(() {
           _errorMessage = 'An unexpected error occurred. Please try again.';
+          print('Signup Generic Exception: $e');
         });
       } finally {
         if (mounted) {

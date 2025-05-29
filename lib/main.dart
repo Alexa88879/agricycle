@@ -12,6 +12,7 @@ import 'screens/waste_classification_screen.dart';
 import 'screens/new_waste_listing_screen.dart';
 import 'screens/browse_listings_screen.dart'; 
 import 'screens/listing_detail_screen.dart'; 
+import 'screens/my_listings_screen.dart'; // Add this import
 
 // Import google_fonts if you plan to use it for styling
 // import 'package:google_fonts/google_fonts.dart';
@@ -118,6 +119,8 @@ class MyApp extends StatelessWidget {
           final listingId = ModalRoute.of(context)!.settings.arguments as String;
           return ListingDetailScreen(listingId: listingId);
         },
+        // In the routes map, add:
+        MyListingsScreen.routeName: (context) => const MyListingsScreen(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(

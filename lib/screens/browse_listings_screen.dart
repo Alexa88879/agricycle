@@ -304,21 +304,45 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text('Quantity: ${listing.quantity}', style: theme.textTheme.bodyMedium),
-                  Text('Location: ${listing.location}', style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis),
+                  Text(
+                    'Quantity: ${listing.quantity}',
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Location: ${listing.location}',
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (listing.farmerName != null && listing.farmerName!.isNotEmpty)
-                    Text('By: ${listing.farmerName}', style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+                    Text(
+                      'By: ${listing.farmerName}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Listed: ${DateFormat.yMMMd().format(listing.createdAt.toDate())}',
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                      Expanded(
+                        child: Text(
+                          'Listed: ${DateFormat.yMMMd().format(listing.createdAt.toDate())}',
+                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       if (listing.suggestedPrice != null && listing.suggestedPrice!.isNotEmpty)
                         Chip(
-                          label: Text(listing.suggestedPrice!, style: TextStyle(color: theme.colorScheme.onSecondaryContainer, fontSize: 11, fontWeight: FontWeight.bold)),
+                          label: Text(
+                            listing.suggestedPrice!,
+                            style: TextStyle(color: theme.colorScheme.onSecondaryContainer, fontSize: 11, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.7),
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           visualDensity: VisualDensity.compact,

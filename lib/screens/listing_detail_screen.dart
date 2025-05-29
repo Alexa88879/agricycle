@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/waste_listing_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   static const String routeName = '/listing-detail';
@@ -16,10 +18,13 @@ class ListingDetailScreen extends StatefulWidget {
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Stream<WasteListing?>? _listingStream;
+  final AuthService _authService = AuthService();
+  String? _userRole;
 
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
     _listingStream = FirebaseFirestore.instance
         .collection('wasteListings')
         .doc(widget.listingId)
@@ -35,6 +40,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     });
   }
 
+  Future<void> _loadUserRole() async {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final role = await _authService.getUserRole(currentUser.uid);
+      if (mounted) {
+        setState(() {
+          _userRole = role;
+        });
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
@@ -154,26 +171,29 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ],
                 
                 const SizedBox(height: 30),
-                Center(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.gavel_rounded),
-                    label: const Text('Make an Offer / Contact Farmer'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
+                if (_userRole == 'Company') ...[  // Only show for companies
+                  const SizedBox(height: 30),
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.gavel_rounded),
+                      label: const Text('Make an Offer / Contact Farmer'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Contact/Bidding (Not Implemented Yet)')),
+                        );
+                        // Implement contact or bidding functionality
+                        // e.g., launch mailto:listing.userEmail or navigate to a chat screen
+                      },
                     ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Contact/Bidding (Not Implemented Yet)')),
-                      );
-                      // Implement contact or bidding functionality
-                      // e.g., launch mailto:listing.userEmail or navigate to a chat screen
-                    },
                   ),
-                ),
-                 const SizedBox(height: 20),
+                ],
+                const SizedBox(height: 20),
               ],
             ),
           );
