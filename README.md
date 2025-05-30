@@ -1,157 +1,158 @@
-# 🚨 Nivaran  — Civic Issue Reporting App
+# AgriCycle ♻️ 🚜
 
-<div align="center">
-  <img src="assets/icon/app_logo.png" alt="Nivaran Logo" width="150" />
-</div>
+**AgriCycle** is a mobile application built with Flutter that aims to revolutionize agricultural waste management. It provides a platform for farmers to connect with businesses, enabling the efficient sale, purchase, and recycling of agricultural waste. The app also features market trend analysis for agricultural commodities and an AI-powered waste classification tool.
 
-**Nivaran** is a community-powered mobile app to report, verify, and track civic issues — making neighborhoods better through collective action.
+## 🌟 Key Features
 
----
+* **User Roles:** Separate interfaces and functionalities for Farmers and Businesses (Companies).
+* **Waste Listing:** Farmers can list their agricultural waste products with details like type, quantity, location, and images.
+* **Browse & Discover:** Businesses can browse and search for available waste listings.
+* **Direct Connection:** Facilitates communication or contact between farmers and interested businesses (details on implementation may vary).
+* **AI Waste Classification:** Users can upload images of waste, and an AI model (Python backend) classifies the type of waste.
+* **Market Trends:** Provides insights into market prices and trends for various agricultural products to help farmers and businesses make informed decisions.
+* **User Authentication:** Secure login and registration system using Firebase.
+* **Dashboard:** Personalized dashboards for farmers and businesses to manage their listings, activities, and view relevant information.
+* **My Listings:** Farmers can view and manage the waste they have listed.
 
-## 📱 App Features
+## 📸 Screenshots (Placeholder)
 
-- 📸 **Report Civic Issues** with image, location & description
-- 📍 Live issue tracking
-- 🧠 Community verification (upvote true reports)
-- 🔔 Real-time notifications via Firebase
-- 📊 Issue categories: Road, Light, Safety, Waste, etc.
-- 🌙 Dark mode + modern Flutter UI
+*(It's highly recommended to add screenshots of your application here to give users a visual understanding of the app.)*
 
----
+* *Login/Signup Screen*
+* *Role Selection Screen*
+* *Farmer Dashboard*
+* *Company Dashboard*
+* *New Waste Listing Screen*
+* *Browse Listings Screen*
+* *Listing Detail Screen*
+* *Waste Classification Screen*
+* *Market Trends Screen*
 
-## 🚀 Quick Start Guide (for Developers)
+## 🛠️ Tech Stack
 
-### ✅ Prerequisite
+* **Frontend (Mobile App):**
+    * Flutter & Dart
+    * Provider (for state management)
+    * Firebase SDKs (Auth, Firestore, Storage)
+    * `http` (for network requests to the backend)
+    * `image_picker` (for selecting images)
+    * `fl_chart` (for displaying market trend charts)
+* **Backend (Waste Classification Service):**
+    * Python
+    * Flask (for creating the API)
+    * TensorFlow/Keras (or other ML library for the classification model - *inferred*)
+    * Pillow (for image manipulation)
+* **Database & Backend Services:**
+    * Firebase Firestore (for data storage)
+    * Firebase Authentication (for user management)
+    * Firebase Storage (for storing images)
 
-Make sure you have:
+## 🚀 Getting Started
 
-- Flutter SDK [Install → https://docs.flutter.dev/get-started/install]
-- Android Studio OR VS Code with Dart & Flutter plugins
-- Firebase account → [https://firebase.google.com/]
-- Node.js & Firebase CLI (`npm install -g firebase-tools`)
-- A connected Android emulator OR real device
+### Prerequisites
 
----
+* Flutter SDK: [Install Flutter](https://flutter.dev/docs/get-started/install)
+* Firebase Account: [Create a Firebase project](https://firebase.google.com/)
+* Python environment for the backend service.
+* An editor like VS Code or Android Studio.
 
-### ⚙️ Step-by-Step Setup
+### Frontend Setup (Flutter App)
 
-#### 1. Clone the Repository
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/your-username/agricycle.git](https://github.com/your-username/agricycle.git)
+    cd agricycle
+    ```
+2.  **Set up Firebase:**
+    * Create a new Firebase project.
+    * Add an Android and/or iOS app to your Firebase project.
+    * Download the `google-services.json` file for Android and place it in `android/app/`.
+    * Download the `GoogleService-Info.plist` file for iOS and place it in `ios/Runner/`.
+    * Enable Firebase Authentication (Email/Password).
+    * Set up Firebase Firestore and Firebase Storage with appropriate security rules. (Refer to `firebase_rules/` for examples, but ensure they are secure for production).
 
-```bash
-git clone https://github.com/yourusername/Nivaran..git
-cd Nivaran.
-flutter pub get
-```
+3.  **Install dependencies:**
+    ```bash
+    flutter pub get
+    ```
 
-#### 2. Firebase Setup
+4.  **Run the app:**
+    ```bash
+    flutter run
+    ```
 
-1. Go to Firebase Console (https://console.firebase.google.com/)
-2. Create a new project (e.g., `nivaran`)
-3. Add Android app:
-   - Package name: com.example.modern_auth_app
-   - Register app, download google-services.json
-   - Replace it at:  
-     android/app/google-services.json
-4. Enable:
-   - Email/Password Authentication
-   - Firebase Firestore
-5. Setup Cloudaninary:
-   - Create a new account
-   - Create a new cloudinary account
-   - Create a new cloudinary upload preset
-   - Make new file secrets.dart in lib 
-   - Replace cloudinaryUploadPreset , cloudinaryCloudName values 
+### Backend Setup (Waste Classifier Service)
 
-#### 3. Android Configuration
+1.  **Navigate to the service directory:**
+    ```bash
+    cd waste_classifier_service
+    ```
+2.  **Create a virtual environment (recommended):**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
+3.  **Install Python dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  **Prepare your Machine Learning Model:**
+    * The `app.py` expects a trained model file (e.g., `waste_model.h5` or similar). You'll need to train your waste classification model and place it in the `waste_classifier_service` directory or update the path in `app.py`.
+    * Ensure you have a `labels.txt` file if your model requires one for class names.
 
-Edit android/build.gradle.kts and app/build.gradle.kts if needed. Already configured for Firebase.
+5.  **Run the Flask server:**
+    ```bash
+    python app.py
+    ```
+    By default, it might run on `http://127.0.0.1:5000`.
 
+6.  **Configure Flutter App to connect to Backend:**
+    * In your Flutter code (likely in `lib/screens/waste_classification_screen.dart` or a service file), update the API endpoint to point to your running Flask server. If running on a local machine and testing with an emulator/device, you might need to use your machine's local IP address instead of `127.0.0.1`. For Android emulators, `10.0.2.2` usually maps to the host machine's localhost.
 
-## 📥 Download the App
+## 💡 How to Use
 
-You can download the app using the link below:
+1.  **Sign Up/Login:** Create an account or log in if you already have one.
+2.  **Select Role:** Choose whether you are a "Farmer" or a "Company/Business".
+3.  **Farmer Dashboard:**
+    * **Post Waste:** Create new listings for agricultural waste, providing details and images.
+    * **My Listings:** View and manage your active listings.
+    * **Market Trends:** Check current market prices for various commodities.
+    * **Classify Waste:** Use the AI tool to identify types of waste.
+4.  **Company Dashboard:**
+    * **Browse Listings:** Search and view waste listings posted by farmers.
+    * **View Details:** Get more information about specific listings.
+    * **Market Trends:** Analyze market data.
+    * **Classify Waste:** Utilize the AI waste classification tool.
 
-[Download Nivaran APK (v1.0.0)](https://github.com/Alexa88879/Nivaran./releases/download/v1.0.0/Nivaran.apk)
+## 🔮 Future Enhancements
 
-Or visit our [official website](https://versionhost-88b2d.web.app/) 
-
-> To see the ppt visit the ppt folder
-
-> 🟢 The app will launch on your connected emulator/device.
-
----
-
-## 🧠 App Folder Structure
-
-Nivaran_3.0/
-│
-├── android/               # Android native files
-├── assets/                # Images, icons
-├── lib/                   # Main Flutter code
-│   ├── screens/           # App screens
-│   ├── widgets/           # Custom UI widgets
-│   ├── services/          # Firebase logic, APIs
-│   └── main.dart          # Entry point
-├── pubspec.yaml           # Dependencies
-└── README.md              # This file
-
----
-
-## 💡 Common Issues & Fixes
-
-| Issue | Solution |
-|-------|----------|
-| google-services.json missing | Ensure it's placed in android/app/ |
-| Firebase errors | Recheck Firebase project setup and SHA-1 |
-| Plugin not installed | Run flutter pub get again |
-| App won’t start | Use physical device or enable emulator & USB debugging |
-
-
----
-
-## 🔧 Tech Stack
-
-| Layer        | Tool            |
-|--------------|-----------------|
-| UI           | Flutter         |
-| Backend      | Firebase (Firestore, Auth) |
-| Notifications| Firebase Cloud Messaging |
-| Storage      | Cloudinary |
-
----
+* **In-App Chat/Messaging:** Direct communication between farmers and businesses.
+* **Bidding System:** Allow businesses to bid on waste listings.
+* **Logistics Integration:** Options for transportation or pickup services.
+* **Advanced Analytics:** More detailed market trend analysis and reporting.
+* **Notifications:** Real-time alerts for new listings, messages, or bids.
+* **Payment Integration:** Secure payment processing for transactions.
+* **User Reviews and Ratings:** Build trust and transparency in the platform.
+* **Offline Support:** Basic functionality when network connectivity is limited.
+* **Multi-language Support.**
 
 ## 🤝 Contributing
 
-Want to improve the app? Here's how:
+Contributions are welcome! If you'd like to contribute, please follow these steps:
 
-# Fork → Clone → Create branch → Code → Push → PR
-git checkout -b feature/amazing-feature
+1.  Fork the repository.
+2.  Create a new branch (`git checkout -b feature/your-feature-name`).
+3.  Make your changes.
+4.  Commit your changes (`git commit -m 'Add some feature'`).
+5.  Push to the branch (`git push origin feature/your-feature-name`).
+6.  Open a Pull Request.
 
-Please follow proper naming, write clean commits, and document your code.
-
----
+Please make sure to update tests as appropriate.
 
 ## 📄 License
 
-This project is protected by a **Custom License**.  
-You may view and contribute to this repository, but **you may not copy, re-upload, or publish this app as your own.**
-
-See the [LICENSE](./LICENSE) file for full terms.
+This project is licensed under the terms specified in the [LICENSE](LICENSE.md) file. Please refer to the `LICENSE.md` file in the root of the repository for full details.
 
 ---
 
-## 🙌 Our Mission
-
-> “Report Problems. Vote Truth. Empower Change.”
-
-Help us build smarter cities by connecting people with their civic needs.
-
----
-
-## 🔗 Useful Links
-
-- 🔥 Flutter Docs
- (https://flutter.dev/docs)- 🎯 Firebase Docs
- (https://firebase.google.com/docs)- 🐞 Open Issues (https://github.com/yourusername/Nivaran_3.0/issues)
-
-
+Thank you for checking out AgriCycle! We hope this platform contributes to a more sustainable agricultural ecosystem.
