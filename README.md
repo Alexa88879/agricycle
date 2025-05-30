@@ -151,7 +151,7 @@ Please make sure to update tests as appropriate.
 
 ## 📄 License
 
-This project is licensed under the terms specified in the [LICENSE](LICENSE) file. Please refer to the `LICENSE` file in the root of the repository for full details.
+This project is licensed under the terms specified in the [LICENSE](LICENSE.md) file. Please refer to the `LICENSE.md` file in the root of the repository for full details.
 
 ---
 
