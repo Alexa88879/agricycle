@@ -41,7 +41,7 @@ dependencies:
   image_picker: ^1.1.0
   geolocator: ^11.0.0
   google_maps_flutter: ^2.6.0
-  uuid: ^4.3.3
+  uuid: ^3.0.7
   provider: ^6.1.2
   http: ^1.4.0
   intl: ^0.20.2
@@ -52,7 +52,9 @@ dependencies:
   dio: ^5.8.0+1 
   firebase_messaging: 14.9.4
   flutter_local_notifications: ^19.2.1
-  flutter_sound: ^9.28.0
+  flutter_sound: 9.2.4
+  flutter_sound_web: 9.2.4  # Pin to an older version that doesn't use the problematic API
+
   # New dependencies from agricycle_ai
   flutter_image_compress: ^2.1.0
   cached_network_image: ^3.3.0
